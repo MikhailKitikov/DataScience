@@ -1,0 +1,59 @@
+//#include "stdafx.h"
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <cmath>
+#include <bits/stdc++.h>
+
+using namespace std;
+
+string orig, fake;
+int n;
+int ans = 10000;
+int maxlen = -1;
+vector<pair<string, string>> repl;
+
+void f(string s, int moves)
+{
+	if (s == fake && moves <= 4) {
+		ans = min(ans, moves);
+		return;
+	}
+	if (moves > 4) {
+		return;
+	}
+	int cnt = 0;
+	for (int i = 0; i < s.size(); ++i) {
+		if (s[i] != fake[i]) ++cnt;
+	}
+	if (maxlen * (4 - moves) < cnt)
+		return;
+	for (int i = 0; i < n; ++i) {
+		auto t = s.find(repl[i].first);
+		if (t != string::npos) {
+			string r = s;
+			for (int j = 0; j < repl[i].first.size(); ++j) {
+				r[j + t] = repl[i].second[j];
+			}
+			f(r, moves + 1);
+		}
+	}
+}
+
+int main()
+{
+	cin >> orig >> fake;
+	cin >> n;
+	repl.resize(n);
+	for (int i = 0; i < n; ++i) {
+		cin >> repl[i].first >> repl[i].second;
+		maxlen = max(maxlen, int(repl[i].first.size()));
+	}
+
+	f(orig, 0);
+	cout << (ans == 10000 ? -1 : ans);
+	//system("pause");
+	return 0;
+}
+

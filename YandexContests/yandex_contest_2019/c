@@ -1,0 +1,115 @@
+//#include "stdafx.h"
+#include <algorithm>
+#include <cstdlib>
+#include <limits>
+#include <random>
+#include <vector>
+#include <iostream>
+#include <string>
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int n, k, n_cnt; 
+
+struct Point {
+	vector<double> features;
+	int num;
+	Point(int _num = -1) : features(vector<double>(n_cnt, 0)), num(_num) {}
+};
+
+using DataFrame = std::vector<Point>;
+
+double squared_l2_distance(Point first, Point second) {
+	double res = 0.0;
+	for (int i = 0; i < n_cnt; ++i) {
+		res += abs(first.features[i] - second.features[i]);
+	}
+	return res;
+}
+
+std::vector<size_t> k_means(const DataFrame& data,
+	size_t k,
+	size_t number_of_iterations) {
+	static std::random_device seed;
+	static std::mt19937 random_number_generator(seed());
+	std::uniform_int_distribution<size_t> indices(0, data.size() - 1);
+
+	// Pick centroids as random points from the dataset.
+	DataFrame means(k);
+	for (auto& cluster : means) {
+		cluster = data[indices(random_number_generator)];
+	}
+
+	std::vector<size_t> assignments(data.size());
+	for (size_t iteration = 0; iteration < number_of_iterations; ++iteration) {
+		// Find assignments.
+		for (size_t point = 0; point < data.size(); ++point) {
+			double best_distance = std::numeric_limits<double>::max();
+			size_t best_cluster = 0;
+			for (size_t cluster = 0; cluster < k; ++cluster) {
+				const double distance =
+					squared_l2_distance(data[point], means[cluster]);
+				if (distance < best_distance) {
+					best_distance = distance;
+					best_cluster = cluster;
+				}
+			}
+			assignments[point] = best_cluster;
+		}
+
+		// Sum up and count points for each cluster.
+		DataFrame new_means(k);
+		std::vector<size_t> counts(k, 0);
+		for (size_t point = 0; point < data.size(); ++point) {
+			const auto cluster = assignments[point];
+			for (int i = 0; i < n_cnt; ++i) {
+				new_means[cluster].features[i] += data[point].features[i];
+			}
+			counts[cluster] += 1;
+		}
+
+		// Divide sums by counts to get new centroids.
+		for (size_t cluster = 0; cluster < k; ++cluster) {
+			// Turn 0/0 into 0/1 to avoid zero division.
+			const auto count = std::max<size_t>(1, counts[cluster]);
+			for (int i = 0; i < n_cnt; ++i) {
+				means[cluster].features[i] = new_means[cluster].features[i] / count;
+			}
+		}
+	}
+
+	return assignments;
+}
+
+
+int main()
+{
+	cin >> n >> k;
+	--k;
+	n_cnt = k * (k + 1);
+	string s;
+	DataFrame data;
+	for (int i = 0; i < n; ++i) {
+		cin >> s;
+		Point p(i);
+		p.features[s[0] - 'a'] = 1;
+		for (int j = 1; j < s.size(); ++j) {
+			int cell = k * (s[j] - 'a' + 1) + (s[j - 1] - 'a');
+			p.features[cell] = 1;
+		}
+		data.push_back(p);
+	}
+
+	vector<size_t> ans = k_means(data, 2, n);
+
+	for (auto t : ans) {
+		cout << t << endl;
+	}
+
+	//cout << ans.size();
+	
+	//system("pause");
+    return 0;
+}
+
